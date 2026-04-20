@@ -1,0 +1,12 @@
+# Example jmunch-mcp config. Wraps the official GitHub MCP server as the
+# upstream — any MCP server works, GitHub is just a well-known anchor.
+#
+# Requires GITHUB_PERSONAL_ACCESS_TOKEN in your environment.
+
+[upstream]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-github"]
+
+threshold_tokens = 2000
+log_level = "INFO"
+report = false

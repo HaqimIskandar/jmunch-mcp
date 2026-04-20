@@ -1,0 +1,33 @@
+[project]
+name = "jmunch-mcp"
+version = "0.0.1"
+description = "Transparent MCP proxy that reduces token cost of large tool responses via content-aware handles"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "J. Gravelle", email = "j@gravelle.us" },
+]
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/jgravelle/jmunch-mcp"
+Repository = "https://github.com/jgravelle/jmunch-mcp"
+
+[project.scripts]
+jmunch-mcp = "jmunch_mcp.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jmunch_mcp"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/jmunch_mcp/cli/dashboard.html" = "jmunch_mcp/cli/dashboard.html"

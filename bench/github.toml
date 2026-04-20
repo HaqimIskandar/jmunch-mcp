@@ -1,0 +1,16 @@
+# Benchmark config: wraps the official GitHub MCP server.
+#
+# Requires GITHUB_PERSONAL_ACCESS_TOKEN in your environment (a fine-grained PAT
+# with public-repo read is sufficient — the benchmark only hits facebook/react).
+
+[upstream]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-github"]
+
+[upstream.env]
+# inherited from os.environ; uncomment to pin
+# GITHUB_PERSONAL_ACCESS_TOKEN = "ghp_..."
+
+threshold_tokens = 2000
+log_level = "WARNING"
+report = false

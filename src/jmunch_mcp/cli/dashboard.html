@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>jmunch-mcp dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0e0f13;
+    --panel: #161922;
+    --panel-2: #1d2130;
+    --fg: #e7e9ee;
+    --muted: #8c93a6;
+    --accent: #7aa2ff;
+    --ok: #5dd39e;
+    --warn: #f2b85b;
+    --bad: #f28b82;
+    --border: #242838;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+               font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI",
+                     Roboto, "Helvetica Neue", Arial, sans-serif; }
+  header { padding: 18px 24px; border-bottom: 1px solid var(--border);
+           display: flex; justify-content: space-between; align-items: center;
+           gap: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header .live-dot { display: inline-block; width: 8px; height: 8px;
+                     border-radius: 50%; background: var(--ok);
+                     margin-right: 6px; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .btns a, .btns button { background: var(--panel-2); color: var(--fg);
+                          border: 1px solid var(--border); padding: 6px 12px;
+                          border-radius: 6px; text-decoration: none; cursor: pointer;
+                          font-size: 13px; }
+  .btns a:hover, .btns button:hover { border-color: var(--accent); }
+  main { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+  .totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px; margin-bottom: 20px; }
+  .card { background: var(--panel); border: 1px solid var(--border);
+          border-radius: 10px; padding: 14px 18px; }
+  .card .label { font-size: 12px; color: var(--muted); text-transform: uppercase;
+                 letter-spacing: 0.5px; }
+  .card .value { font-size: 28px; font-weight: 600; margin-top: 4px; }
+  .card .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .grid-2 { display: grid; grid-template-columns: 3fr 2fr; gap: 16px; margin-bottom: 20px; }
+  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--border);
+           border-radius: 10px; padding: 16px 18px; }
+  .panel h2 { font-size: 13px; color: var(--muted); text-transform: uppercase;
+              margin: 0 0 12px 0; letter-spacing: 0.5px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; font-size: 12px;
+       text-transform: uppercase; letter-spacing: 0.3px; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  th.num { text-align: right; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--panel-2); }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 10px;
+          font-size: 11px; background: var(--panel-2); color: var(--muted);
+          border: 1px solid var(--border); }
+  .pill.ok { color: var(--ok); border-color: rgba(93,211,158,0.3); }
+  .pill.warn { color: var(--warn); border-color: rgba(242,184,91,0.3); }
+  .pill.bad { color: var(--bad); border-color: rgba(242,139,130,0.3); }
+  .pill.muted { opacity: 0.5; }
+  .server-row { display: flex; align-items: center; justify-content: space-between;
+                padding: 10px 0; border-bottom: 1px solid var(--border); gap: 10px; }
+  .server-row:last-child { border-bottom: none; }
+  .server-row.disabled { opacity: 0.45; }
+  .server-name { font-weight: 500; }
+  .server-meta { color: var(--muted); font-size: 12px; margin-top: 2px;
+                 word-break: break-all; }
+  .toggle-btn { background: var(--accent); color: #0e0f13; border: none;
+                padding: 6px 12px; border-radius: 6px; cursor: pointer;
+                font-size: 12px; font-weight: 600; }
+  .toggle-btn:hover { filter: brightness(1.1); }
+  .toggle-btn.off { background: var(--panel-2); color: var(--fg);
+                    border: 1px solid var(--border); }
+  .toggle-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .banner { background: rgba(122,162,255,0.12); border: 1px solid var(--accent);
+            color: var(--accent); padding: 10px 14px; border-radius: 8px;
+            margin-bottom: 16px; font-size: 13px; }
+  .banner.error { background: rgba(242,139,130,0.12); border-color: var(--bad);
+                  color: var(--bad); }
+  .chart-wrap { height: 240px; position: relative; }
+  .empty { color: var(--muted); text-align: center; padding: 20px;
+           font-style: italic; }
+  footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border);
+           color: var(--muted); font-size: 12px; text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1><span class="live-dot"></span>jmunch-mcp dashboard</h1>
+    <div style="color: var(--muted); font-size: 12px; margin-top: 2px;"
+         id="last-updated">loading…</div>
+  </div>
+  <div class="btns">
+    <a href="/api/export.csv" download>Export CSV</a>
+    <a href="/api/stats" target="_blank">Raw stats</a>
+    <button onclick="clearStats()">Clear stats</button>
+    <button onclick="refresh()">Refresh</button>
+  </div>
+</header>
+
+<main>
+  <div id="banner-slot"></div>
+
+  <div class="totals" id="totals"></div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h2>Tokens saved (24h, 5-min buckets)</h2>
+      <div class="chart-wrap"><canvas id="chart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Per-upstream breakdown</h2>
+      <table id="upstream-table">
+        <thead><tr>
+          <th>Upstream</th>
+          <th class="num">Calls</th>
+          <th class="num">Tokens saved</th>
+          <th class="num">Total ms</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h2>Discovered MCP servers</h2>
+      <div id="server-list"></div>
+    </div>
+    <div class="panel">
+      <h2>Recent calls</h2>
+      <table id="calls-table">
+        <thead><tr>
+          <th>Time</th>
+          <th>Upstream</th>
+          <th>Tool</th>
+          <th class="num">Raw</th>
+          <th class="num">Saved</th>
+          <th class="num">ms</th>
+          <th></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    jmunch-mcp · read-only view · auto-refreshes every 3s
+  </footer>
+</main>
+
+<script>
+let chart = null;
+
+function fmtBytes(n) {
+  if (!n) return '0';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let i = 0;
+  while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+  return n.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+}
+
+function fmtInt(n) {
+  if (!n) return '0';
+  return n.toLocaleString();
+}
+
+function fmtTime(ts) {
+  const d = new Date(ts * 1000);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function card(label, value, sub) {
+  return `<div class="card"><div class="label">${label}</div>
+          <div class="value">${value}</div>
+          ${sub ? `<div class="sub">${sub}</div>` : ''}</div>`;
+}
+
+async function loadStats() {
+  const r = await fetch('/api/stats');
+  const s = await r.json();
+  const t = s.totals;
+  document.getElementById('totals').innerHTML = [
+    card('Tokens saved', fmtInt(t.tokens_saved), fmtBytes(t.saved_bytes) + ' total'),
+    card('Total calls', fmtInt(t.calls), fmtInt(t.handles_created) + ' handles created'),
+    card('Raw / Sent', fmtBytes(t.raw_bytes) + ' → ' + fmtBytes(t.response_bytes),
+         t.raw_bytes ? ((1 - t.response_bytes / t.raw_bytes) * 100).toFixed(1) + '% reduction' : ''),
+    card('Errors', fmtInt(t.errors), t.errors ? 'check recent calls' : 'all good'),
+  ].join('');
+
+  // chart
+  const labels = s.series.map(p => fmtTime(p.ts));
+  const data = s.series.map(p => p.tokens_saved);
+  if (!chart) {
+    const ctx = document.getElementById('chart').getContext('2d');
+    chart = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets: [{
+        label: 'tokens saved', data,
+        borderColor: '#7aa2ff', backgroundColor: 'rgba(122,162,255,0.15)',
+        fill: true, tension: 0.25, pointRadius: 0, borderWidth: 2,
+      }]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#8c93a6', maxTicksLimit: 8 }, grid: { color: '#242838' } },
+          y: { ticks: { color: '#8c93a6' }, grid: { color: '#242838' }, beginAtZero: true },
+        },
+      },
+    });
+  } else {
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = data;
+    chart.update('none');
+  }
+
+  // per-upstream
+  const ut = document.querySelector('#upstream-table tbody');
+  if (!s.per_upstream.length) {
+    ut.innerHTML = `<tr><td colspan="4" class="empty">No calls recorded yet. Launch a wrapped MCP and use it.</td></tr>`;
+  } else {
+    ut.innerHTML = s.per_upstream.map(u => `
+      <tr>
+        <td>${u.upstream}</td>
+        <td class="num">${fmtInt(u.calls)}</td>
+        <td class="num">${fmtInt(u.tokens_saved)}</td>
+        <td class="num">${fmtInt(u.duration_ms)}</td>
+      </tr>`).join('');
+  }
+
+  document.getElementById('last-updated').textContent =
+    'updated ' + new Date().toLocaleTimeString();
+}
+
+let VERSIONS = {};
+
+async function loadVersions() {
+  try {
+    const r = await fetch('/api/versions');
+    VERSIONS = await r.json();
+  } catch (e) { VERSIONS = {}; }
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function loadServers() {
+  const r = await fetch('/api/servers');
+  const s = await r.json();
+  const all = s.servers;  // own-suite entries are hidden — self-proxy is a no-op
+  const list = document.getElementById('server-list');
+  if (!all.length) {
+    list.innerHTML = `<div class="empty">No MCP servers found in any client config.</div>`;
+    return;
+  }
+  list.innerHTML = all.map((x, i) => {
+    const pills = [];
+    if (x.own_suite) pills.push(`<span class="pill muted">own suite — cannot self-proxy</span>`);
+    else if (x.wrapped) pills.push(`<span class="pill ok">Optimized</span>`);
+    else pills.push(`<span class="pill warn">Not wrapped</span>`);
+    if (x.env_keys.length) pills.push(`<span class="pill">env: ${esc(x.env_keys.join(', '))}</span>`);
+    const v = VERSIONS[x.name];
+    if (v && v.latest) pills.push(`<span class="pill">${esc(v.registry)} ${esc(v.package)} latest: ${esc(v.latest)}</span>`);
+
+    let btn = '';
+    const isLocalToml = (x.source || '').startsWith('local-toml:');
+    if (x.own_suite) {
+      // no button
+    } else if (isLocalToml) {
+      const tomlPath = x.source.slice('local-toml:'.length);
+      btn = `<button class="toggle-btn" data-toml="${esc(tomlPath)}"
+              data-key="${esc(x.name)}" onclick="installLocal(this)">Install</button>`;
+    } else if (x.source_path && x.server_key) {
+      const action = x.wrapped ? 'unwrap' : 'wrap';
+      const label = x.wrapped ? 'Unoptimize' : 'Optimize';
+      const cls = x.wrapped ? 'toggle-btn off' : 'toggle-btn';
+      btn = `<button class="${cls}" data-action="${action}"
+              data-path="${esc(x.source_path)}" data-key="${esc(x.server_key)}"
+              data-project="${esc(x.source_project || '')}"
+              onclick="toggleOptimize(this)">${label}</button>`;
+    }
+
+    return `<div class="server-row ${x.own_suite ? 'disabled' : ''}">
+      <div style="flex: 1; min-width: 0;">
+        <div class="server-name">${esc(x.name)}</div>
+        <div class="server-meta">${esc(x.command)} ${esc((x.args || []).join(' '))}</div>
+        <div class="server-meta">${esc(x.source)}</div>
+      </div>
+      <div style="text-align: right; display: flex; flex-direction: column; gap: 6px; align-items: flex-end;">
+        ${pills.join('')}
+        ${btn}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showBanner(msg, isError) {
+  const slot = document.getElementById('banner-slot');
+  slot.innerHTML = `<div class="banner ${isError ? 'error' : ''}">${esc(msg)}</div>`;
+  if (!isError) setTimeout(() => { slot.innerHTML = ''; }, 10000);
+}
+
+async function toggleOptimize(btn) {
+  const action = btn.dataset.action;
+  const body = { action, source_path: btn.dataset.path, server_key: btn.dataset.key,
+                 source_project: btn.dataset.project };
+  btn.disabled = true;
+  btn.textContent = action === 'wrap' ? 'Wrapping…' : 'Unwrapping…';
+  try {
+    const r = await fetch('/api/optimize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    if (data.ok) {
+      showBanner(
+        `${action === 'wrap' ? 'Wrapped' : 'Unwrapped'} ${body.server_key} in ${body.source_path}. ` +
+        `Restart your MCP client for the change to take effect.`,
+        false);
+      await loadServers();
+    } else {
+      showBanner(`Toggle failed: ${data.error || data.status || 'unknown error'}`, true);
+      btn.disabled = false;
+    }
+  } catch (e) {
+    showBanner(`Toggle failed: ${e.message}`, true);
+    btn.disabled = false;
+  }
+}
+
+async function installLocal(btn) {
+  const body = { toml_path: btn.dataset.toml, server_key: btn.dataset.key };
+  btn.disabled = true;
+  btn.textContent = 'Installing…';
+  try {
+    const r = await fetch('/api/install', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    if (data.ok) {
+      showBanner(
+        `Installed ${body.server_key} into ${data.config}. ` +
+        `Restart your MCP client for the change to take effect.`,
+        false);
+      await loadServers();
+    } else {
+      showBanner(`Install failed: ${data.error || 'unknown error'}`, true);
+      btn.disabled = false;
+      btn.textContent = 'Install';
+    }
+  } catch (e) {
+    showBanner(`Install failed: ${e.message}`, true);
+    btn.disabled = false;
+    btn.textContent = 'Install';
+  }
+}
+
+async function loadCalls() {
+  const r = await fetch('/api/calls?limit=50');
+  const calls = await r.json();
+  const tb = document.querySelector('#calls-table tbody');
+  if (!calls.length) {
+    tb.innerHTML = `<tr><td colspan="7" class="empty">No calls yet.</td></tr>`;
+    return;
+  }
+  tb.innerHTML = calls.map(c => {
+    const pill = c.is_error ? `<span class="pill bad">error</span>` :
+                 c.handle_created ? `<span class="pill ok">handle</span>` : '';
+    return `<tr>
+      <td>${fmtTime(c.ts)}</td>
+      <td>${c.upstream}</td>
+      <td>${c.tool}</td>
+      <td class="num">${fmtBytes(c.raw_bytes)}</td>
+      <td class="num">${fmtInt(Math.floor(c.saved_bytes / 4))}</td>
+      <td class="num">${fmtInt(c.duration_ms)}</td>
+      <td>${pill}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function clearStats() {
+  if (!confirm('Clear ALL recorded calls and stats? This cannot be undone.')) return;
+  try {
+    const r = await fetch('/api/clear-stats', { method: 'POST' });
+    const data = await r.json();
+    if (data.ok) {
+      showBanner(`Cleared ${data.cleared} rows.`, false);
+      await refresh();
+    } else {
+      showBanner(`Clear failed: ${data.error || 'unknown error'}`, true);
+    }
+  } catch (e) {
+    showBanner(`Clear failed: ${e.message}`, true);
+  }
+}
+
+async function refresh() {
+  try {
+    await Promise.all([loadStats(), loadServers(), loadCalls()]);
+  } catch (e) {
+    document.getElementById('last-updated').textContent = 'error: ' + e.message;
+  }
+}
+
+// Versions load once on start + every 10 minutes (registry calls are slow).
+async function refreshVersions() {
+  await loadVersions();
+  await loadServers();
+}
+
+refresh();
+refreshVersions();
+setInterval(refresh, 3000);
+setInterval(refreshVersions, 600000);
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# Benchmark config: wraps the Firecrawl MCP server.
+#
+# Requires FIRECRAWL_API_KEY in your environment (free tier at firecrawl.dev).
+
+[upstream]
+command = "npx"
+args = ["-y", "firecrawl-mcp"]
+
+threshold_tokens = 2000
+log_level = "WARNING"
+report = false
