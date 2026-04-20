@@ -37,6 +37,17 @@ jmunch-mcp --config examples/config.toml
 
 Configure your MCP client to launch `jmunch-mcp --config <path>` instead of the upstream server directly. Add `--report` to print a session summary on shutdown.
 
+## Dashboard
+
+A read-only local web UI over the metrics DB each proxy writes to. Shows cumulative totals, per-upstream breakdowns, and a time series of forwarded calls.
+
+```bash
+jmunch-mcp dashboard              # http://127.0.0.1:7878
+jmunch-mcp dashboard --open       # also open in your default browser
+```
+
+Flags: `--port` (default `7878`), `--host` (default `127.0.0.1`), `--db <path>` to point at a non-default metrics DB, `--open` to launch the browser. Metrics only populate once proxies have recorded calls, so run your client against a wrapped upstream first.
+
 ## License
 
 jmunch-mcp is released under the [MIT License](LICENSE) — free to use, modify, distribute, and embed in commercial products.

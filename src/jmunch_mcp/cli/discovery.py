@@ -308,7 +308,10 @@ def scan_local_configs() -> list[Candidate]:
     try:
         import tomllib  # py311+
     except ImportError:
-        return []
+        try:
+            import tomli as tomllib
+        except ImportError:
+            return []
 
     found: list[Candidate] = []
     for d in _local_config_dirs():
