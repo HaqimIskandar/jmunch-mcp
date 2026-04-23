@@ -42,14 +42,35 @@ def _run_serve(args: argparse.Namespace) -> int:
     return rc
 
 
+def _run_gateway(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="jmunch-mcp gateway")
+    parser.add_argument("--config", required=True, help="Path to gateway.toml")
+    parser.add_argument("--log-level", default=None, help="Override config log_level")
+    args = parser.parse_args(argv)
+
+    from .gateway.config import load as load_gateway
+    from .gateway.server import serve
+
+    config = load_gateway(args.config)
+    level = args.log_level or config.log_level
+    logging.basicConfig(
+        level=getattr(logging, level.upper(), logging.INFO),
+        stream=sys.stderr,
+        format="%(asctime)s %(name)s %(levelname)s %(message)s",
+    )
+    return serve(config)
+
+
 def main() -> int:
-    # Route `init` / `dashboard` subcommands; default is the proxy.
+    # Route `init` / `dashboard` / `gateway` subcommands; default is the proxy.
     if len(sys.argv) > 1 and sys.argv[1] == "init":
         from .cli.init import main as init_main
         return init_main(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "dashboard":
         from .cli.dashboard import main as dashboard_main
         return dashboard_main(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1] == "gateway":
+        return _run_gateway(sys.argv[2:])
 
     parser = argparse.ArgumentParser(prog="jmunch-mcp")
     parser.add_argument("--config", required=True, help="Path to config.toml / config.json")

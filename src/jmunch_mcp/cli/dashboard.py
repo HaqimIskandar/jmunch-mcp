@@ -92,17 +92,18 @@ def _server_payload() -> dict:
     return {"servers": servers, "own_suite": own}
 
 
-def _stats_payload(db_path: Path) -> dict:
+def _stats_payload(db_path: Path, surface: str | None = None) -> dict:
     return {
-        "totals": metrics.totals(db_path),
-        "per_upstream": metrics.per_upstream(db_path),
-        "series": metrics.series(bucket_seconds=300, hours=24, path=db_path),
+        "totals": metrics.totals(db_path, surface=surface),
+        "per_upstream": metrics.per_upstream(db_path, surface=surface),
+        "series": metrics.series(bucket_seconds=300, hours=24, path=db_path, surface=surface),
+        "surface": surface or "all",
         "generated_at": time.time(),
     }
 
 
-def _calls_payload(db_path: Path, limit: int) -> list[dict]:
-    return metrics.recent_calls(limit=limit, path=db_path)
+def _calls_payload(db_path: Path, limit: int, surface: str | None = None) -> list[dict]:
+    return metrics.recent_calls(limit=limit, path=db_path, surface=surface)
 
 
 def _export_csv(db_path: Path) -> str:
@@ -374,8 +375,13 @@ def _make_handler(db_path: Path):
                     self._send_text("<h1>dashboard.html missing</h1>", "text/html", 500)
                 return
 
+            qs = parse_qs(url.query)
+            surface = qs.get("surface", [None])[0]
+            if surface not in (None, "all", "mcp", "gateway"):
+                surface = None
+
             if path == "/api/stats":
-                self._send_json(_stats_payload(db_path))
+                self._send_json(_stats_payload(db_path, surface=surface))
                 return
 
             if path == "/api/servers":
@@ -383,9 +389,8 @@ def _make_handler(db_path: Path):
                 return
 
             if path == "/api/calls":
-                qs = parse_qs(url.query)
                 limit = int(qs.get("limit", ["100"])[0])
-                self._send_json(_calls_payload(db_path, limit))
+                self._send_json(_calls_payload(db_path, limit, surface=surface))
                 return
 
             if path == "/api/versions":

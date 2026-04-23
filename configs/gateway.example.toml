@@ -1,0 +1,45 @@
+# jmunch-mcp gateway — example configuration
+#
+# Run with:
+#   pip install 'jmunch-mcp[gateway]'
+#   jmunch-mcp gateway --config configs/gateway.example.toml
+#
+# Point your app at http://127.0.0.1:7879 (via OPENAI_API_BASE, base_url, etc.)
+
+[gateway]
+listen = "127.0.0.1:7879"
+default_upstream = "openai"
+log_level = "INFO"
+
+[[upstream]]
+name = "openai"
+kind = "openai"
+base_url = "https://api.openai.com"
+# api key read from $OPENAI_API_KEY by default.
+# api_key_env = "MY_OPENAI_KEY"
+
+[[upstream]]
+name = "anthropic"
+kind = "anthropic"
+base_url = "https://api.anthropic.com"
+# api key read from $ANTHROPIC_API_KEY.
+
+[[upstream]]
+name = "ollama"
+kind = "openai"
+base_url = "http://127.0.0.1:11434"
+
+[interception]
+# Tool-result payloads above this size (bytes/4 heuristic) get handle-ified.
+threshold_tokens = 2000
+# auto:   inject jmunch verbs when the request already declares tools
+# always: inject unconditionally (useful for apps that don't set tools)
+# never:  never inject; pure pass-through + request-side handle-ify only
+inject_tools = "auto"
+
+[handles]
+# TTL + persistent SQLite store ships in Phase 4. For Phase 1 handles are
+# in-memory and session-scoped (matches today's MCP behavior).
+ttl_seconds = 3600
+store_path = "~/.jmunch/handles.db"
+max_bytes = 2000000000

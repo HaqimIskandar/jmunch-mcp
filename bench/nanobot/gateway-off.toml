@@ -1,0 +1,30 @@
+# jmunch-mcp gateway — OFF (pure passthrough baseline for the nanobot demo)
+#
+# Same proxy, same plumbing, same latency as gateway-on.toml. The only
+# differences are the two [interception] knobs: threshold is impossibly high
+# so nothing handle-ifies, and tool injection is disabled so Claude never
+# learns about jmunch_peek/slice/etc.
+#
+# Running the demo against this config measures: "what would nanobot cost
+# without jmunch's intelligence?" — while keeping the proxy in the loop so
+# latency and plumbing differences are ruled out as confounders.
+
+[gateway]
+listen = "127.0.0.1:7879"
+default_upstream = "anthropic"
+log_level = "INFO"
+
+[[upstream]]
+name = "anthropic"
+kind = "openai"                                  # route via the OpenAI-compat path
+base_url = "https://api.anthropic.com"           # Anthropic's OpenAI-compat endpoint
+api_key_env = "ANTHROPIC_API_KEY"
+
+[interception]
+threshold_tokens = 1000000000    # 4 GB — nothing trips this
+inject_tools = "never"            # Claude never sees the jmunch verbs
+
+[handles]
+ttl_seconds = 3600
+store_path = "~/.jmunch/handles.db"
+max_bytes = 2000000000

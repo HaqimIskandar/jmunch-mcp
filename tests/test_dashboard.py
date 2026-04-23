@@ -217,7 +217,9 @@ def test_csv_export(seeded_db):
         assert status == 200
         assert "text/csv" in ct
         text = body.decode("utf-8")
-        assert text.startswith("ts,upstream,tool,")
+        # Header starts with ts,upstream; column order after that evolves.
+        assert text.startswith("ts,upstream,")
+        assert "tool" in text.split("\n", 1)[0]
         assert "github" in text
         assert "firecrawl" in text
     finally:

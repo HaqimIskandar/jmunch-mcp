@@ -50,6 +50,41 @@ jmunch-mcp --config examples/config.toml
 
 Configure your MCP client to launch `jmunch-mcp --config <path>` instead of the upstream server directly. Add `--report` to print a session summary on shutdown.
 
+## Gateway mode (v2 — universal proxy)
+
+The MCP proxy above saves tokens for MCP clients. The **gateway** saves tokens for *any* AI application that speaks the OpenAI or Anthropic HTTP API — LangChain, LlamaIndex, CrewAI, AutoGen, Continue, Cline, Aider, or a raw SDK. No code changes in the app; just point `base_url` at jmunch.
+
+```bash
+pip install 'jmunch-mcp[gateway]'
+jmunch-mcp gateway --config configs/gateway.example.toml
+# listening on http://127.0.0.1:7879
+```
+
+Point your app:
+
+```bash
+# OpenAI SDK, LangChain, Aider, Continue, Cline, Ollama-compat apps:
+export OPENAI_API_BASE=http://127.0.0.1:7879/v1
+
+# Native Anthropic SDK / Claude Code:
+export ANTHROPIC_BASE_URL=http://127.0.0.1:7879
+```
+
+What it does, transparently:
+
+- **Handle-ifies fat tool_results** in outgoing requests — your app's tool returns 100KB of JSON, the model sees a 1KB summary + opaque handle.
+- **Injects jmunch verbs** (`peek`, `slice`, `search`, `aggregate`, `describe`, `summarize`, `list_handles`) into the request's `tools` array so the model can drill in.
+- **Short-circuits verb calls** — when the model calls `jmunch_peek`, the gateway resolves it locally against the handle registry and synthesizes the follow-up turn. The app never sees jmunch tool_calls; those completions cost zero upstream tokens.
+- **Persists handles** to `~/.jmunch/handles.db` with a configurable TTL so they survive restarts and cross-session reads.
+- **Streams both ways** — OpenAI SSE and Anthropic event streams are buffer-then-replayed with correct verb resolution.
+
+Per-request controls via headers:
+
+- `X-Jmunch-Upstream: <name>` — override the configured upstream.
+- `X-Jmunch-Inject: false` — disable tool injection for this call (pure pass-through + request-side handle-ify only).
+
+Metrics flow into the same dashboard as the MCP proxy. Filter with `?surface=gateway` or `?surface=mcp` on `/api/stats` and `/api/calls`.
+
 ## Dashboard
 
 A read-only local web UI over the metrics DB each proxy writes to. Shows cumulative totals, per-upstream breakdowns, and a time series of forwarded calls.

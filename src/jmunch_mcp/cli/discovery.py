@@ -324,6 +324,10 @@ def scan_local_configs() -> list[Candidate]:
             except (OSError, ValueError):
                 continue
             up = data.get("upstream") or {}
+            # Skip gateway-shaped files (`[[upstream]]` arrays) and any other
+            # TOML that isn't an MCP wrapper config.
+            if not isinstance(up, dict):
+                continue
             command = up.get("command")
             if not isinstance(command, str):
                 continue

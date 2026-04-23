@@ -45,7 +45,16 @@ class HandleRegistry:
         self._max_bytes = max_bytes
         self._lock = threading.Lock()
 
-    def register(self, backend: "Backend", size_bytes: int, kind: str) -> Handle:
+    def register(
+        self,
+        backend: "Backend",
+        size_bytes: int,
+        kind: str,
+        *,
+        source: object | None = None,   # ignored by the in-memory registry; the
+                                         # persistent subclass uses it to write
+                                         # the source payload to disk.
+    ) -> Handle:
         handle_id = f"h_{secrets.token_urlsafe(9)}"
         h = Handle(id=handle_id, backend=backend, size_bytes=size_bytes, kind=kind)
         with self._lock:

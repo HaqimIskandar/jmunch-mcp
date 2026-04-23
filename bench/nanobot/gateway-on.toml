@@ -1,0 +1,24 @@
+# jmunch-mcp gateway — ON (production interception settings)
+#
+# Byte-identical to gateway-off.toml except the two [interception] knobs.
+# This is the config that demonstrates the savings.
+
+[gateway]
+listen = "127.0.0.1:7879"
+default_upstream = "anthropic"
+log_level = "INFO"
+
+[[upstream]]
+name = "anthropic"
+kind = "openai"                                  # route via the OpenAI-compat path
+base_url = "https://api.anthropic.com"           # Anthropic's OpenAI-compat endpoint
+api_key_env = "ANTHROPIC_API_KEY"
+
+[interception]
+threshold_tokens = 1500       # fat tool_results above ~6KB get handle-ified
+inject_tools = "auto"          # inject jmunch verbs when the request has tools
+
+[handles]
+ttl_seconds = 3600
+store_path = "~/.jmunch/handles.db"
+max_bytes = 2000000000
