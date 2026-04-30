@@ -57,9 +57,9 @@ def test_inject_tools_adds_jmunch_schemas(tmp_path):
 def test_inject_does_not_duplicate_existing_jmunch(tmp_path):
     p = _proxy(tmp_path)
     p._pending[1] = "tools/list"
-    out = p._maybe_rewrite_response(_tools_list_response(["jmunch.peek"]))
+    out = p._maybe_rewrite_response(_tools_list_response(["jmunch_peek"]))
     names = [t["name"] for t in out["result"]["tools"]]
-    assert names.count("jmunch.peek") == 1
+    assert names.count("jmunch_peek") == 1
 
 
 def test_small_response_passes_through(tmp_path):
@@ -103,7 +103,7 @@ def test_handle_then_peek_roundtrip(tmp_path):
     out = p._maybe_rewrite_response(msg)
     handle_id = json.loads(out["result"]["content"][0]["text"])["result"]["handle"]
 
-    peeked = p.dispatcher.dispatch("jmunch.peek", {"handle": handle_id, "n": 3})
+    peeked = p.dispatcher.dispatch("jmunch_peek", {"handle": handle_id, "n": 3})
     assert isinstance(peeked, list)
     assert [r["id"] for r in peeked] == [0, 1, 2]
 
@@ -119,7 +119,7 @@ def test_handle_aggregate_count_by_group(tmp_path):
     handle_id = json.loads(out["result"]["content"][0]["text"])["result"]["handle"]
 
     grouped = p.dispatcher.dispatch(
-        "jmunch.aggregate", {"handle": handle_id, "op": "count", "group_by": "state"}
+        "jmunch_aggregate", {"handle": handle_id, "op": "count", "group_by": "state"}
     )
     as_map = {g["group"]: g["value"] for g in grouped}
     # 10 i's where i%3==0 → closed; 20 others → open
@@ -139,7 +139,7 @@ def test_large_json_tree_is_handle_ified(tmp_path):
     # Verb dispatch on the fresh handle should work
     handle_id = inner["result"]["handle"]
     sliced = p.dispatcher.dispatch(
-        "jmunch.slice", {"handle": handle_id, "selector": "$.nested.deeply[0]"}
+        "jmunch_slice", {"handle": handle_id, "selector": "$.nested.deeply[0]"}
     )
     assert sliced["count"] == 1
     assert sliced["matches"][0]["value"] == "a"
@@ -157,7 +157,7 @@ def test_large_non_json_text_becomes_text_handle(tmp_path):
     inner = json.loads(out["result"]["content"][0]["text"])
     assert inner["result"]["kind"] == "text"
     handle_id = inner["result"]["handle"]
-    summary = p.dispatcher.dispatch("jmunch.summarize", {"handle": handle_id})
+    summary = p.dispatcher.dispatch("jmunch_summarize", {"handle": handle_id})
     assert summary["line_count"] == 200
     assert any(kw["token"] == "neural" for kw in summary["keywords"])
 
@@ -169,7 +169,7 @@ def test_summarize_on_non_text_handle_returns_not_applicable(tmp_path):
     msg = _tool_call_response(json.dumps(payload))
     p._maybe_rewrite_response(msg)
     handle_id = next(iter(p.registry.list())).id
-    err = p.dispatcher.dispatch("jmunch.summarize", {"handle": handle_id})
+    err = p.dispatcher.dispatch("jmunch_summarize", {"handle": handle_id})
     assert err["code"] == "NOT_APPLICABLE"
 
 
@@ -183,5 +183,5 @@ def test_short_json_tree_below_threshold_passes_through(tmp_path):
 
 def test_expired_handle_returns_structured_error(tmp_path):
     p = _proxy(tmp_path)
-    result = p.dispatcher.dispatch("jmunch.peek", {"handle": "h_doesnotexist"})
+    result = p.dispatcher.dispatch("jmunch_peek", {"handle": "h_doesnotexist"})
     assert result["code"] == "HANDLE_EXPIRED"

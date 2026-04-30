@@ -1,13 +1,13 @@
 """Stdio proxy with interception.
 
 c2s (client→upstream):
-  - tools/call requests targeting `jmunch.*` are consumed here, dispatched
+  - tools/call requests targeting `jmunch_*` are consumed here, dispatched
     against the local registry, and a synthesized response is written
     directly to the client. The upstream never sees them.
   - Everything else is forwarded verbatim.
 
 s2c (upstream→client):
-  - tools/list responses have our jmunch.* schemas spliced into the tools
+  - tools/list responses have our jmunch_* schemas spliced into the tools
     array before forwarding.
   - tools/call responses whose payload exceeds the configured token
     threshold are routed to the sniffer. Tabular payloads become handles;
@@ -130,7 +130,7 @@ class Proxy:
             await dst.drain()
 
     async def _maybe_handle_local(self, msg: dict[str, Any]) -> bool:
-        """If the request is a jmunch.* tools/call, handle it locally and write
+        """If the request is a jmunch_* tools/call, handle it locally and write
         the response to the client. Returns True if consumed."""
         if msg.get("method") != "tools/call":
             return False
@@ -176,7 +176,7 @@ class Proxy:
             duration_ms=duration_ms,
             is_error=is_error,
         )
-        log.debug("c2s jmunch.%s handled locally", name.split(".", 1)[1])
+        log.debug("c2s %s handled locally", name)
         return True
 
     # -- s2c -----------------------------------------------------------------
@@ -269,7 +269,7 @@ class Proxy:
                 merged.append(copy.deepcopy(schema))
         out = copy.deepcopy(msg)
         out["result"]["tools"] = merged
-        log.debug("s2c injected %d jmunch tool schemas", len(TOOL_SCHEMAS))
+        log.debug("s2c injected %d jmunch_* tool schemas", len(TOOL_SCHEMAS))
         return out
 
     def _maybe_handle_ify(self, msg: dict[str, Any]) -> dict[str, Any]:
@@ -342,9 +342,9 @@ class Proxy:
             "kind": handle.kind,
             "summary": backend.summary(),
             "_hint": (
-                "Use jmunch.peek/slice/search/describe on this handle "
-                "(aggregate for tabular only; summarize for text only). "
-                "jmunch.list_handles lists all live handles."
+                "Use jmunch_peek/jmunch_slice/jmunch_search/jmunch_describe on this handle "
+                "(jmunch_aggregate for tabular only; jmunch_summarize for text only). "
+                "jmunch_list_handles lists all live handles."
             ),
         }
         env = envelope(

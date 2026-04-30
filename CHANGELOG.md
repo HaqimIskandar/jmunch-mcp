@@ -5,6 +5,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] — 2026-04-30
+
+### Fixed
+- **MCP tool names now use underscores (`jmunch_peek` etc.) instead of dots.**
+  The Anthropic API enforces `^[a-zA-Z0-9_-]{1,64}$` on tool names server-side,
+  so dotted names produced 400s on every Claude Desktop chat that had
+  jmunch-mcp loaded (`FrontendRemoteMcpToolDefinition.name` regex error).
+  Claude Code happened to mask this because it namespaces remote MCP tools
+  as `mcp__<server>__<tool>` before forwarding; Desktop forwards the raw
+  `tools/list` names verbatim. Reported by @denovich (#2).
+- The seven dotted names (`jmunch.peek`, `jmunch.slice`, `jmunch.search`,
+  `jmunch.aggregate`, `jmunch.summarize`, `jmunch.describe`,
+  `jmunch.list_handles`) remain accepted as deprecated aliases in the
+  dispatcher for one release so in-flight `tools/call` requests from
+  older clients still resolve. They are no longer advertised in
+  `tools/list`.
+
 ## [0.2.0] — 2026-04-24
 
 ### Changed

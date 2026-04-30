@@ -31,8 +31,8 @@ def test_stats_track_handle_and_reuse(tmp_path):
     assert p.stats.handles_created == 1
     assert p.stats.handles_by_kind["tabular"] == 1
 
-    p.dispatcher.dispatch("jmunch.peek", {"handle": handle_id, "n": 3})
-    p.dispatcher.dispatch("jmunch.describe", {"handle": handle_id})
+    p.dispatcher.dispatch("jmunch_peek", {"handle": handle_id, "n": 3})
+    p.dispatcher.dispatch("jmunch_describe", {"handle": handle_id})
     assert p.stats.handle_reuses == 2
 
 
@@ -46,13 +46,13 @@ def test_stats_track_passthrough(tmp_path):
 
 def test_list_handles_does_not_count_as_reuse(tmp_path):
     p = _make(tmp_path)
-    p.dispatcher.dispatch("jmunch.list_handles", {})
+    p.dispatcher.dispatch("jmunch_list_handles", {})
     assert p.stats.handle_reuses == 0
 
 
 def test_expired_handle_does_not_count_as_reuse(tmp_path):
     p = _make(tmp_path)
-    p.dispatcher.dispatch("jmunch.peek", {"handle": "h_nope"})
+    p.dispatcher.dispatch("jmunch_peek", {"handle": "h_nope"})
     assert p.stats.handle_reuses == 0
 
 

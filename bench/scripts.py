@@ -40,11 +40,11 @@ GITHUB_CALLS: list[tuple[str, str, dict]] = [
 # Follow-up calls against the most recent handle — models a realistic agent
 # that drills into a large result instead of slurping the whole thing.
 JMUNCH_FOLLOWUPS: list[tuple[str, str, dict]] = [
-    ("jmunch.describe($LAST_HANDLE)", "jmunch.describe", {"handle": "$LAST_HANDLE"}),
-    ("jmunch.peek($LAST_HANDLE, n=5)", "jmunch.peek", {"handle": "$LAST_HANDLE", "n": 5}),
+    ("jmunch_describe($LAST_HANDLE)", "jmunch_describe", {"handle": "$LAST_HANDLE"}),
+    ("jmunch_peek($LAST_HANDLE, n=5)", "jmunch_peek", {"handle": "$LAST_HANDLE", "n": 5}),
     (
-        "jmunch.slice($LAST_HANDLE, state='open', max_rows=10)",
-        "jmunch.slice",
+        "jmunch_slice($LAST_HANDLE, state='open', max_rows=10)",
+        "jmunch_slice",
         {"handle": "$LAST_HANDLE", "selector": "state = 'open'", "max_rows": 10},
     ),
 ]
@@ -79,11 +79,11 @@ FIRECRAWL_CALLS: list[tuple[str, str, dict]] = [
 
 # JSON-backend verb drills (replace tabular-specific ones).
 JMUNCH_FOLLOWUPS_JSON: list[tuple[str, str, dict]] = [
-    ("jmunch.describe($LAST_HANDLE)", "jmunch.describe", {"handle": "$LAST_HANDLE"}),
-    ("jmunch.peek($LAST_HANDLE, n=5)", "jmunch.peek", {"handle": "$LAST_HANDLE", "n": 5}),
+    ("jmunch_describe($LAST_HANDLE)", "jmunch_describe", {"handle": "$LAST_HANDLE"}),
+    ("jmunch_peek($LAST_HANDLE, n=5)", "jmunch_peek", {"handle": "$LAST_HANDLE", "n": 5}),
     (
-        "jmunch.search($LAST_HANDLE, 'neural')",
-        "jmunch.search",
+        "jmunch_search($LAST_HANDLE, 'neural')",
+        "jmunch_search",
         {"handle": "$LAST_HANDLE", "query": "neural", "max_results": 5},
     ),
 ]

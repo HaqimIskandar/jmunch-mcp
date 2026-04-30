@@ -1,8 +1,12 @@
-"""jmunch.* tool schemas + local dispatch.
+"""jmunch_* tool schemas + local dispatch.
 
 These are the MCP tools we add to the upstream's tool list on the way through.
 They never reach the upstream — the proxy intercepts any call whose name
-starts with `jmunch.` and routes here.
+starts with `jmunch_` and routes here.
+
+Tool names use underscores (not dots) to satisfy the Anthropic API's
+`^[a-zA-Z0-9_-]{1,64}$` regex; clients like Claude Desktop forward MCP
+tool names verbatim, so dotted names produced 400s on every chat.
 
 Each handler returns a *raw* result payload (or an error dict via make_error);
 the proxy wraps it in the jMRI envelope before emitting.
@@ -17,7 +21,7 @@ from .stats import SessionStats
 
 TOOL_SCHEMAS: list[dict[str, Any]] = [
     {
-        "name": "jmunch.peek",
+        "name": "jmunch_peek",
         "description": "Return the first or last N items of a handle-ified payload.",
         "inputSchema": {
             "type": "object",
@@ -30,7 +34,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         },
     },
     {
-        "name": "jmunch.slice",
+        "name": "jmunch_slice",
         "description": "Subset a handle by selector. Tabular: SQL WHERE. JSON: JSONPath. Text: regex/line range.",
         "inputSchema": {
             "type": "object",
@@ -43,7 +47,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         },
     },
     {
-        "name": "jmunch.search",
+        "name": "jmunch_search",
         "description": "Search within a handle. Backend-specific; tabular supports substring match across TEXT columns.",
         "inputSchema": {
             "type": "object",
@@ -56,7 +60,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         },
     },
     {
-        "name": "jmunch.aggregate",
+        "name": "jmunch_aggregate",
         "description": "count/sum/avg/min/max on a tabular handle, optionally grouped.",
         "inputSchema": {
             "type": "object",
@@ -70,7 +74,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         },
     },
     {
-        "name": "jmunch.summarize",
+        "name": "jmunch_summarize",
         "description": "Deterministic digest for text handles: head + middle samples + tail + top keywords. Text only.",
         "inputSchema": {
             "type": "object",
@@ -82,7 +86,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         },
     },
     {
-        "name": "jmunch.describe",
+        "name": "jmunch_describe",
         "description": "Full metadata for a handle: schema, row/field counts, per-column stats where applicable.",
         "inputSchema": {
             "type": "object",
@@ -91,17 +95,19 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         },
     },
     {
-        "name": "jmunch.list_handles",
+        "name": "jmunch_list_handles",
         "description": "List currently live handles with their kind and size.",
         "inputSchema": {"type": "object", "properties": {}},
     },
 ]
 
 TOOL_NAMES = {t["name"] for t in TOOL_SCHEMAS}
+# Deprecated dotted aliases still routed locally; see _HANDLERS below.
+_LEGACY_TOOL_NAMES = {n.replace("_", ".", 1) for n in TOOL_NAMES}
 
 
 def is_jmunch_tool(name: str) -> bool:
-    return name in TOOL_NAMES
+    return name in TOOL_NAMES or name in _LEGACY_TOOL_NAMES
 
 
 class Dispatcher:
@@ -191,6 +197,16 @@ class Dispatcher:
 
 
 _HANDLERS = {
+    "jmunch_peek": Dispatcher._peek,
+    "jmunch_slice": Dispatcher._slice,
+    "jmunch_search": Dispatcher._search,
+    "jmunch_aggregate": Dispatcher._aggregate,
+    "jmunch_summarize": Dispatcher._summarize,
+    "jmunch_describe": Dispatcher._describe,
+    "jmunch_list_handles": Dispatcher._list_handles,
+    # Deprecated dotted aliases (pre-0.2.1). Accepted for one release so
+    # in-flight tools/call requests from older clients still resolve. They
+    # are NOT in TOOL_SCHEMAS, so newly-discovered clients won't see them.
     "jmunch.peek": Dispatcher._peek,
     "jmunch.slice": Dispatcher._slice,
     "jmunch.search": Dispatcher._search,

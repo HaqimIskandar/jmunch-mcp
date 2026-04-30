@@ -1,9 +1,9 @@
 """Convert jmunch MCP tool schemas into the OpenAI / Anthropic request shapes.
 
-MCP names contain dots (`jmunch.peek`) but OpenAI/Anthropic function names
-must match `^[a-zA-Z0-9_-]{1,64}$` — so we map `jmunch.peek` ↔ `jmunch_peek`.
-The reverse map lets us dispatch tool_calls back through the MCP-shaped
-Dispatcher unchanged (jMRI: single verb set, single dispatcher).
+MCP names already use the underscore form (`jmunch_peek`) to satisfy the
+Anthropic API regex `^[a-zA-Z0-9_-]{1,64}$`, so the gateway-side name is
+identical. This mapping is kept as an indirection in case the wire shapes
+ever diverge again.
 """
 from __future__ import annotations
 

@@ -16,7 +16,7 @@ def test_metrics_record_and_totals(tmp_path):
     m.record(upstream="github", tool="search_issues",
              raw_bytes=4000, response_bytes=400, saved_bytes=3600,
              duration_ms=120, handle_created=True)
-    m.record(upstream="github", tool="jmunch.peek",
+    m.record(upstream="github", tool="jmunch_peek",
              response_bytes=250, duration_ms=3)
     m.record(upstream="firecrawl", tool="scrape",
              raw_bytes=20000, response_bytes=300, saved_bytes=19700,
@@ -24,7 +24,7 @@ def test_metrics_record_and_totals(tmp_path):
     m.close()
 
     t = metrics.totals(db)
-    # Dashboard rule: rows with saved_bytes=0 (jmunch.peek here) are hidden everywhere.
+    # Dashboard rule: rows with saved_bytes=0 (jmunch_peek here) are hidden everywhere.
     assert t["calls"] == 2
     assert t["saved_bytes"] == 23300
     assert t["tokens_saved"] == 23300 // 4
@@ -83,13 +83,13 @@ def test_metrics_series_buckets(tmp_path):
 
 
 def test_zero_saved_rows_hidden_everywhere(tmp_path):
-    """Dashboard rule: rows with saved_bytes=0 never surface. Covers jmunch.*
+    """Dashboard rule: rows with saved_bytes=0 never surface. Covers jmunch_*
     handle ops, below-threshold passthroughs, and pure errors."""
     db = tmp_path / "m.db"
     m = metrics.MetricsDB(db)
     m.record(upstream="github", tool="search_issues",
              raw_bytes=4000, response_bytes=400, saved_bytes=3600)
-    m.record(upstream="github", tool="jmunch.slice", response_bytes=250)  # saved=0
+    m.record(upstream="github", tool="jmunch_slice", response_bytes=250)  # saved=0
     m.record(upstream="passthru", tool="ping", raw_bytes=50, response_bytes=50)  # saved=0
     m.close()
 
